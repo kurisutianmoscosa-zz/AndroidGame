@@ -20,6 +20,22 @@
             android:name="com.pearson.lagp.demolition.MainMenuActivity"
             android:label="@string/title_activity_main_menu" >
         </activity>
+        <activity
+            android:name="com.pearson.lagp.demolition.Level1Activity"
+            android:label="@string/title_activity_level1" >
+        </activity>
+        <activity
+            android:name="com.pearson.lagp.demolition.OptionsActivity"
+            android:label="@string/title_activity_options" >
+        </activity>
+        <activity
+            android:name="com.pearson.lagp.demolition.StartActivity"
+            android:label="@string/title_activity_start" >
+        </activity>
+        <activity
+            android:name="com.pearson.lagp.demolition.WAVActivity"
+            android:label="@string/title_activity_wav" >
+        </activity>
     </application>
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
