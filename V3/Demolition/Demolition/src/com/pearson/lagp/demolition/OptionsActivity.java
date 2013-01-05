@@ -8,7 +8,6 @@ import org.anddev.andengine.engine.options.EngineOptions;
 import org.anddev.andengine.engine.options.EngineOptions.ScreenOrientation;
 import org.anddev.andengine.engine.options.resolutionpolicy.RatioResolutionPolicy;
 import org.anddev.andengine.entity.modifier.ScaleAtModifier;
-import org.anddev.andengine.entity.modifier.ScaleModifier;
 import org.anddev.andengine.entity.scene.Scene;
 import org.anddev.andengine.entity.scene.menu.MenuScene;
 import org.anddev.andengine.entity.scene.menu.MenuScene.IOnMenuItemClickListener;
@@ -26,6 +25,7 @@ import org.anddev.andengine.opengl.texture.region.TextureRegionFactory;
 import org.anddev.andengine.ui.activity.BaseGameActivity;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Handler;
 
@@ -64,8 +64,8 @@ public class OptionsActivity extends BaseGameActivity implements IOnMenuItemClic
 	private Texture mFontTexture;
 	private Font mFont;
 	
-	public boolean isMusicOn = true;
-	public boolean isEffectsOn = true;
+	private SharedPreferences audioOptions;
+	private SharedPreferences.Editor audioEditor;
 
 	// ===========================================================
 	// Constructors
@@ -83,6 +83,8 @@ public class OptionsActivity extends BaseGameActivity implements IOnMenuItemClic
 	public Engine onLoadEngine() {
 		mHandler = new Handler();
 		this.mCamera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
+		audioOptions = getSharedPreferences("audio", MODE_PRIVATE);
+		audioEditor = audioOptions.edit();
 		return new Engine(new EngineOptions(true, ScreenOrientation.LANDSCAPE, new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT), this.mCamera));
 	}
 
@@ -92,12 +94,12 @@ public class OptionsActivity extends BaseGameActivity implements IOnMenuItemClic
 		this.mFontTexture = new Texture(256, 256, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
 
 		FontFactory.setAssetBasePath("font/");
-		this.mFont = FontFactory.createFromAsset(this.mFontTexture, this, "Flubber.ttf", 32, true, Color.WHITE);
+		this.mFont = FontFactory.createFromAsset(this.mFontTexture, getApplicationContext(), "Flubber.ttf", 32, true, Color.WHITE);
 		this.mEngine.getTextureManager().loadTexture(this.mFontTexture);
 		this.mEngine.getFontManager().loadFont(this.mFont);
 
 		this.mMenuBackTexture = new Texture(512, 512, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
-		this.mMenuBackTextureRegion = TextureRegionFactory.createFromAsset(this.mMenuBackTexture, this, "gfx/OptionsMenu/OptionsMenuBk.png", 0, 0);
+		this.mMenuBackTextureRegion = TextureRegionFactory.createFromAsset(this.mMenuBackTexture, getApplicationContext(), "gfx/OptionsMenu/OptionsMenuBk.png", 0, 0);
 		this.mEngine.getTextureManager().loadTexture(this.mMenuBackTexture);
 	
 		mTurnMusicOn = new TextMenuItem(MENU_MUSIC, mFont, "Turn Music On");
@@ -132,8 +134,15 @@ public class OptionsActivity extends BaseGameActivity implements IOnMenuItemClic
 	}
 
 	//@Override
+	public void onPauseGame() {
+		//super.onPauseGame();
+		StartActivity.mMusic.pause();
+	}
+	
+	//@Override
 	public void onResumeGame() {
 		//super.onResumeGame();
+		if (audioOptions.getBoolean("musicOn", false)) StartActivity.mMusic.resume();
 		mMainScene.registerEntityModifier(new ScaleAtModifier(0.5f, 0.0f, 1.0f, CAMERA_WIDTH/2, CAMERA_HEIGHT/2));
 		mOptionsMenuScene.registerEntityModifier(new ScaleAtModifier(0.5f, 0.0f, 1.0f, CAMERA_WIDTH/2, CAMERA_HEIGHT/2));
 	}
@@ -142,28 +151,32 @@ public class OptionsActivity extends BaseGameActivity implements IOnMenuItemClic
 	public boolean onMenuItemClicked(final MenuScene pMenuScene, final IMenuItem pMenuItem, final float pMenuItemLocalX, final float pMenuItemLocalY) {
 		switch(pMenuItem.getID()) {
 			case MENU_MUSIC:
-				if (isMusicOn) {
-					isMusicOn = false;
+				if (audioOptions.getBoolean("musicOn", true)) {
+					audioEditor.putBoolean("musicOn", false);
+					if (StartActivity.mMusic.isPlaying()) StartActivity.mMusic.pause();
 				} else {
-					isMusicOn = true;
+					audioEditor.putBoolean("musicOn", true);
+					StartActivity.mMusic.resume();
 				}
+				audioEditor.commit();
 				createOptionsMenuScene();
 				mMainScene.clearChildScene();
 				mMainScene.setChildScene(mOptionsMenuScene);										
 				return true;
 			case MENU_EFFECTS:
-				if (isEffectsOn) {
-					isEffectsOn = false;
+				if (audioOptions.getBoolean("effectsOn", true)) {
+					audioEditor.putBoolean("effectsOn", false);
 				} else {
-					isEffectsOn = true;
+					audioEditor.putBoolean("effectsOn", true);
 				}
+				audioEditor.commit();
 				createOptionsMenuScene();
 				mMainScene.clearChildScene();
 				mMainScene.setChildScene(mOptionsMenuScene);										
 				return true;
 			case MENU_WAV:
-				mMainScene.registerEntityModifier(new ScaleModifier(1.0f, 1.0f, 0.0f));
-				mOptionsMenuScene.registerEntityModifier(new ScaleModifier(1.0f, 1.0f, 0.0f));
+				mMainScene.registerEntityModifier(new ScaleAtModifier(0.5f, 1.0f, 0.0f, CAMERA_WIDTH/2, CAMERA_HEIGHT/2));
+				mOptionsMenuScene.registerEntityModifier(new ScaleAtModifier(0.5f, 1.0f, 0.0f, CAMERA_WIDTH/2, CAMERA_HEIGHT/2));
 				mHandler.postDelayed(mLaunchWAVTask,1000);
 				return true;
 
@@ -179,7 +192,7 @@ public class OptionsActivity extends BaseGameActivity implements IOnMenuItemClic
 	protected void createOptionsMenuScene() {
 		this.mOptionsMenuScene = new MenuScene(this.mCamera);
 
-		if (isMusicOn) {
+		if (audioOptions.getBoolean("musicOn", true)) {
 			musicMenuItem = new ColorMenuItemDecorator( mTurnMusicOff, 0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f);
 		} else {
 			musicMenuItem = new ColorMenuItemDecorator( mTurnMusicOn, 0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f);
@@ -187,7 +200,7 @@ public class OptionsActivity extends BaseGameActivity implements IOnMenuItemClic
 		musicMenuItem.setBlendFunction(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
 		this.mOptionsMenuScene.addMenuItem(musicMenuItem);
 
-		if (isEffectsOn) {
+		if (audioOptions.getBoolean("effectsOn", true)) {
 			effectsMenuItem = new ColorMenuItemDecorator( mTurnEffectsOff, 0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f);
 		} else {
 			effectsMenuItem = new ColorMenuItemDecorator( mTurnEffectsOn, 0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f);			

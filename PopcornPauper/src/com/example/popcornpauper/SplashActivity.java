@@ -1,4 +1,4 @@
-package com.pearson.lagp.demolition;
+package com.example.popcornpauper;
 
 import java.io.IOException;
 
@@ -25,7 +25,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Handler;
 
-public class StartActivity extends BaseGameActivity {
+public class SplashActivity extends BaseGameActivity {
 	// ===========================================================
 	// Constants
 	// ===========================================================
@@ -62,14 +62,14 @@ public class StartActivity extends BaseGameActivity {
 	public Engine onLoadEngine() {
 		mHandler = new Handler();
 		this.mCamera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
-		audioOptions = getSharedPreferences("audio", MODE_PRIVATE);
+/*		audioOptions = getSharedPreferences("audio", MODE_PRIVATE);
 		audioEditor = audioOptions.edit();
 		if (!audioOptions.contains("musicOn")){
 			audioEditor.putBoolean("musicOn", true);
 			audioEditor.putBoolean("effectsOn", true);
 			audioEditor.commit();
 		}
-		return new Engine(new EngineOptions(true, ScreenOrientation.LANDSCAPE, new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT), this.mCamera).setNeedsMusic(true));
+*/		return new Engine(new EngineOptions(true, ScreenOrientation.LANDSCAPE, new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT), this.mCamera).setNeedsMusic(true));
 	}
 
 	@Override
@@ -84,8 +84,8 @@ public class StartActivity extends BaseGameActivity {
 		this.mEngine.getTextureManager().loadTexture(this.mBatTexture);
 		MusicFactory.setAssetBasePath("mfx/");
 		try {
-			StartActivity.mMusic = MusicFactory.createMusicFromAsset(this.mEngine.getMusicManager(), getApplicationContext(), "bach_fugue.ogg");
-			StartActivity.mMusic.setLooping(true);
+			SplashActivity.mMusic = MusicFactory.createMusicFromAsset(this.mEngine.getMusicManager(), getApplicationContext(), "bach_fugue.ogg");
+			SplashActivity.mMusic.setLooping(true);
 		} catch (final IOException e) {
 			Debug.e(e);
 		}
@@ -113,10 +113,11 @@ public class StartActivity extends BaseGameActivity {
 		scene.getLastChild().attachChild(bat);
 		
 		//Start the music!
-		mMusic.play();
+/*		mMusic.play();
 	   	if (!audioOptions.getBoolean("musicOn", false)) {
 	   		 mMusic.pause();
 	   	}
+*/
 		return scene;
 
 	}
@@ -128,20 +129,20 @@ public class StartActivity extends BaseGameActivity {
 	//@Override
 	public void onPauseGame() {
 		//super.onPauseGame();
-		StartActivity.mMusic.pause();
+		//SplashActivity.mMusic.pause();
 	}
 	
 	//@Override
 	public void onResumeGame() {
 		//super.onResumeGame();
-	   	if (audioOptions.getBoolean("musicOn", false)) StartActivity.mMusic.resume();
+	   	//if (audioOptions.getBoolean("musicOn", false)) SplashActivity.mMusic.resume();
 		mHandler.postDelayed(mLaunchTask,3000);
 	}
 
     private Runnable mLaunchTask = new Runnable() {
         public void run() {
-    		Intent myIntent = new Intent(StartActivity.this, MainMenuActivity.class);
-    		StartActivity.this.startActivity(myIntent);
+    		Intent myIntent = new Intent(SplashActivity.this, MainActivity.class);
+    		SplashActivity.this.startActivity(myIntent);
         }
      };
 	// ===========================================================

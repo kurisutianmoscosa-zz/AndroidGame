@@ -1,4 +1,4 @@
-package com.pearson.lagp.demolition;
+package com.example.popcornpauper;
 
 import java.util.Random;
 
@@ -26,14 +26,14 @@ import org.anddev.andengine.util.Debug;
 
 import android.os.Handler;
 
-public class WAVActivity extends BaseGameActivity {
+public class Lvl1Activity extends BaseGameActivity {
 	// ===========================================================
 	// Constants
 	// ===========================================================
 
 	private static final int CAMERA_WIDTH = 480;
 	private static final int CAMERA_HEIGHT = 320;
-	private String tag = "WAVActivity";
+	private String tag = "Lvl1Activity";
 
 	// ===========================================================
 	// Fields

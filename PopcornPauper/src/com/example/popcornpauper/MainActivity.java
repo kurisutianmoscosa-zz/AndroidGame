@@ -1,4 +1,4 @@
-package com.pearson.lagp.demolition;
+package com.example.popcornpauper;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -33,7 +33,7 @@ import android.os.Handler;
 import android.view.KeyEvent;
 import android.widget.Toast;
 
-public class MainMenuActivity extends BaseGameActivity implements IOnMenuItemClickListener {
+public class MainActivity extends BaseGameActivity implements IOnMenuItemClickListener {
 	// ===========================================================
 	// Constants
 	// ===========================================================
@@ -72,7 +72,7 @@ public class MainMenuActivity extends BaseGameActivity implements IOnMenuItemCli
 	protected TextureRegion mMenuOptionsTextureRegion;
 	protected TextureRegion mMenuHelpTextureRegion;
 	private boolean popupDisplayed;
-	private SharedPreferences audioOptions;
+	//private SharedPreferences audioOptions;
 
 	// ===========================================================
 	// Constructors
@@ -104,12 +104,12 @@ public class MainMenuActivity extends BaseGameActivity implements IOnMenuItemCli
 		this.mEngine.getFontManager().loadFont(this.mFont);
 
 		this.mMenuBackTexture = new Texture(512, 512, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
-		this.mMenuBackTextureRegion = TextureRegionFactory.createFromAsset(this.mMenuBackTexture, getApplicationContext(), "gfx/MainMenu/MainMenuBk.png", 0, 0);
+		this.mMenuBackTextureRegion = TextureRegionFactory.createFromAsset(this.mMenuBackTexture, getApplicationContext(), "gfx/MenuActivity/MainMenuBk.png", 0, 0);
 		this.mEngine.getTextureManager().loadTexture(this.mMenuBackTexture);
 		
 		this.mPopUpTexture = new Texture(512, 512, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
-		this.mPopUpAboutTextureRegion = TextureRegionFactory.createFromAsset(this.mPopUpTexture, getApplicationContext(), "gfx/MainMenu/About_button.png", 0, 0);
-		this.mPopUpQuitTextureRegion = TextureRegionFactory.createFromAsset(this.mPopUpTexture, getApplicationContext(), "gfx/MainMenu/Quit_button.png", 0, 50);
+		this.mPopUpAboutTextureRegion = TextureRegionFactory.createFromAsset(this.mPopUpTexture, getApplicationContext(), "gfx/MenuActivity/About_button.png", 0, 0);
+		this.mPopUpQuitTextureRegion = TextureRegionFactory.createFromAsset(this.mPopUpTexture, getApplicationContext(), "gfx/MenuActivity/Quit_button.png", 0, 50);
 		this.mEngine.getTextureManager().loadTexture(this.mPopUpTexture);
 		popupDisplayed = false;
 		}
@@ -141,8 +141,8 @@ public class MainMenuActivity extends BaseGameActivity implements IOnMenuItemCli
 	//@Override
 	public void onResumeGame() {
 		//super.onResumeGame();
-		audioOptions = getSharedPreferences("audio", MODE_PRIVATE);		
-		if (audioOptions.getBoolean("musicOn", false)) StartActivity.mMusic.resume();
+		//audioOptions = getSharedPreferences("audio", MODE_PRIVATE);		
+		//if (audioOptions.getBoolean("musicOn", false)) StartActivity.mMusic.resume();
 		mMainScene.registerEntityModifier(new ScaleAtModifier(0.5f, 0.0f, 1.0f, CAMERA_WIDTH/2, CAMERA_HEIGHT/2));
 		mStaticMenuScene.registerEntityModifier(new ScaleAtModifier(0.5f, 0.0f, 1.0f, CAMERA_WIDTH/2, CAMERA_HEIGHT/2));
 	}
@@ -150,7 +150,7 @@ public class MainMenuActivity extends BaseGameActivity implements IOnMenuItemCli
 	//@Override
 	public void onPauseGame() {
 		//super.onPauseGame();
-		StartActivity.mMusic.pause();
+		//SplashActivity.mMusic.pause();
 	}
 	
 	@Override
@@ -176,7 +176,8 @@ public class MainMenuActivity extends BaseGameActivity implements IOnMenuItemCli
 	public boolean onMenuItemClicked(final MenuScene pMenuScene, final IMenuItem pMenuItem, final float pMenuItemLocalX, final float pMenuItemLocalY) {
 		switch(pMenuItem.getID()) {
 			case MENU_ABOUT:
-				Toast.makeText(MainMenuActivity.this, "About selected", Toast.LENGTH_SHORT).show();
+				Toast.makeText(
+				MainActivity.this, "About selected", Toast.LENGTH_SHORT).show();
 				return true;
 			case MENU_QUIT:
 				/* End Activity. */
@@ -188,7 +189,7 @@ public class MainMenuActivity extends BaseGameActivity implements IOnMenuItemCli
 				mHandler.postDelayed(mLaunchLevel1Task,500);
 				return true;
 			case MENU_SCORES:
-				Toast.makeText(MainMenuActivity.this, "Scores selected", Toast.LENGTH_SHORT).show();
+				Toast.makeText(MainActivity.this, "Scores selected", Toast.LENGTH_SHORT).show();
 				return true;
 			case MENU_OPTIONS:
 				mMainScene.registerEntityModifier(new ScaleAtModifier(0.5f, 1.0f, 0.0f, CAMERA_WIDTH/2, CAMERA_HEIGHT/2));
@@ -196,7 +197,7 @@ public class MainMenuActivity extends BaseGameActivity implements IOnMenuItemCli
 				mHandler.postDelayed(mLaunchOptionsTask, 500);
 				return true;
 			case MENU_HELP:
-				Toast.makeText(MainMenuActivity.this, "Help selected", Toast.LENGTH_SHORT).show();
+				Toast.makeText(MainActivity.this, "Help selected", Toast.LENGTH_SHORT).show();
 				return true;
 			default:
 				return false;
@@ -253,15 +254,15 @@ public class MainMenuActivity extends BaseGameActivity implements IOnMenuItemCli
 
     private Runnable mLaunchLevel1Task = new Runnable() {
         public void run() {
-    		Intent myIntent = new Intent(MainMenuActivity.this, Level1Activity.class);
-    		MainMenuActivity.this.startActivity(myIntent);
+    		Intent myIntent = new Intent(MainActivity.this, Lvl1Activity.class);
+    		MainActivity.this.startActivity(myIntent);
         }
      };
 
      private Runnable mLaunchOptionsTask = new Runnable() {
          public void run() {
-     		Intent myIntent = new Intent(MainMenuActivity.this, OptionsActivity.class);
-     		MainMenuActivity.this.startActivity(myIntent);
+     		//Intent myIntent = new Intent(MainMenuActivity.this, OptionsActivity.class);
+     		//MainMenuActivity.this.startActivity(myIntent);
          }
       };
 

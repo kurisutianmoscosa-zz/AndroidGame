@@ -1,29 +1,31 @@
 package com.pearson.lagp.demolition;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
 import javax.microedition.khronos.opengles.GL10;
 
+import org.anddev.andengine.audio.sound.Sound;
+import org.anddev.andengine.audio.sound.SoundFactory;
 import org.anddev.andengine.engine.Engine;
 import org.anddev.andengine.engine.camera.Camera;
 import org.anddev.andengine.engine.options.EngineOptions;
 import org.anddev.andengine.engine.options.EngineOptions.ScreenOrientation;
 import org.anddev.andengine.engine.options.resolutionpolicy.RatioResolutionPolicy;
+import org.anddev.andengine.entity.IEntity;
 import org.anddev.andengine.entity.modifier.AlphaModifier;
+import org.anddev.andengine.entity.modifier.IEntityModifier.IEntityModifierListener;
 import org.anddev.andengine.entity.modifier.MoveModifier;
+import org.anddev.andengine.entity.modifier.MoveXModifier;
 import org.anddev.andengine.entity.modifier.MoveYModifier;
 import org.anddev.andengine.entity.modifier.ParallelEntityModifier;
+import org.anddev.andengine.entity.modifier.RotationAtModifier;
 import org.anddev.andengine.entity.modifier.RotationModifier;
 import org.anddev.andengine.entity.modifier.ScaleModifier;
 import org.anddev.andengine.entity.modifier.SequenceEntityModifier;
 import org.anddev.andengine.entity.particle.ParticleSystem;
-import org.anddev.andengine.entity.particle.emitter.CircleParticleEmitter;
-import org.anddev.andengine.entity.particle.initializer.AlphaInitializer;
-import org.anddev.andengine.entity.particle.initializer.ColorInitializer;
-import org.anddev.andengine.entity.particle.initializer.RotationInitializer;
-import org.anddev.andengine.entity.particle.initializer.VelocityInitializer;
-import org.anddev.andengine.entity.particle.modifier.ExpireModifier;
+import org.anddev.andengine.entity.particle.emitter.BaseParticleEmitter;
 import org.anddev.andengine.entity.scene.Scene;
 import org.anddev.andengine.entity.sprite.AnimatedSprite;
 import org.anddev.andengine.entity.sprite.Sprite;
@@ -38,11 +40,13 @@ import org.anddev.andengine.opengl.texture.region.TextureRegion;
 import org.anddev.andengine.opengl.texture.region.TextureRegionFactory;
 import org.anddev.andengine.opengl.texture.region.TiledTextureRegion;
 import org.anddev.andengine.ui.activity.BaseGameActivity;
+import org.anddev.andengine.util.Debug;
+import org.anddev.andengine.util.modifier.IModifier;
 import org.anddev.andengine.util.modifier.ease.EaseQuadOut;
 
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.util.Log;
-import android.widget.Toast;
 
 public class Level1Activity extends BaseGameActivity {
 	// ===========================================================
@@ -65,7 +69,6 @@ public class Level1Activity extends BaseGameActivity {
 
 	private Texture mLevel1BackTexture;
 	private Texture mScrumTexture;
-	private Texture mParticleTexture;
 	private BuildableTexture mObstacleBoxTexture;
 	private TextureRegion mBoxTextureRegion;
 	private TextureRegion mLevel1BackTextureRegion;
@@ -73,12 +76,16 @@ public class Level1Activity extends BaseGameActivity {
 	private TextureRegion mCrossTextureRegion;
 	private TextureRegion mHatchetTextureRegion;
 	private TiledTextureRegion mScrumTextureRegion;
-	private TextureRegion mParticleTextureRegion;
 	
+	private Sprite bullet, cross, hatchet;
 	private AnimatedSprite[] asprVamp = new AnimatedSprite[10];
 	private int nVamp;
 	private ParticleSystem particleSystem;
-	private CircleParticleEmitter particleEmitter;
+	private BaseParticleEmitter particleEmitter;
+	
+	private Sound mExploSound, mGunshotSound, mWhiffleSound;
+	private SharedPreferences audioOptions;
+
 	Random gen;
 	
 	// ===========================================================
@@ -98,7 +105,8 @@ public class Level1Activity extends BaseGameActivity {
 		mHandler = new Handler();
 		gen = new Random();
 		this.mCamera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
-		return new Engine(new EngineOptions(true, ScreenOrientation.LANDSCAPE, new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT), this.mCamera));
+		audioOptions = getSharedPreferences("audio", MODE_PRIVATE);
+		return new Engine(new EngineOptions(true, ScreenOrientation.LANDSCAPE, new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT), this.mCamera).setNeedsSound(true));
 	}
 
 	@Override
@@ -110,10 +118,10 @@ public class Level1Activity extends BaseGameActivity {
 		mEngine.getTextureManager().loadTexture(this.mLevel1BackTexture);
 		
 		mObstacleBoxTexture = new BuildableTexture(512, 256, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
-		mBoxTextureRegion = TextureRegionFactory.createFromAsset(mObstacleBoxTexture, this, "obstaclebox.png");
-		mBulletTextureRegion = TextureRegionFactory.createFromAsset(mObstacleBoxTexture, this, "bullet.png");
-		mCrossTextureRegion = TextureRegionFactory.createFromAsset(mObstacleBoxTexture, this, "cross.png");
-		mHatchetTextureRegion = TextureRegionFactory.createFromAsset(mObstacleBoxTexture, this, "hatchet.png");
+		mBoxTextureRegion = TextureRegionFactory.createFromAsset(mObstacleBoxTexture, getApplicationContext(), "obstaclebox.png");
+		mBulletTextureRegion = TextureRegionFactory.createFromAsset(mObstacleBoxTexture, getApplicationContext(), "bullet.png");
+		mCrossTextureRegion = TextureRegionFactory.createFromAsset(mObstacleBoxTexture, getApplicationContext(), "cross.png");
+		mHatchetTextureRegion = TextureRegionFactory.createFromAsset(mObstacleBoxTexture, getApplicationContext(), "hatchet.png");
 		   try {
 			      mObstacleBoxTexture.build(new BlackPawnTextureBuilder(2));
 			   } catch (final TextureSourcePackingException e) {
@@ -122,14 +130,18 @@ public class Level1Activity extends BaseGameActivity {
 		this.mEngine.getTextureManager().loadTexture(this.mObstacleBoxTexture);
 		
 		mScrumTexture = new Texture(512, 256, TextureOptions.DEFAULT);
-		mScrumTextureRegion = TextureRegionFactory.createTiledFromAsset(this.mScrumTexture, this, "scrum_tiled.png", 0, 0, 8, 4);
+		mScrumTextureRegion = TextureRegionFactory.createTiledFromAsset(this.mScrumTexture, getApplicationContext(), "scrum_tiled.png", 0, 0, 8, 4);
 		mEngine.getTextureManager().loadTexture(this.mScrumTexture);
 		
-		TextureRegionFactory.setAssetBasePath("gfx/particles/");
-		mParticleTexture = new Texture(32, 32, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
-		mParticleTextureRegion = TextureRegionFactory.createFromAsset(this.mParticleTexture, this, "particle_fire.png", 0, 0);
-		mEngine.getTextureManager().loadTexture(this.mParticleTexture);
-
+		SoundFactory.setAssetBasePath("mfx/");
+		try {
+			this.mExploSound = SoundFactory.createSoundFromAsset(this.mEngine.getSoundManager(), getApplicationContext(), "fireball.ogg");
+			this.mGunshotSound = SoundFactory.createSoundFromAsset(this.mEngine.getSoundManager(), getApplicationContext(), "gunshot.ogg");
+			this.mWhiffleSound = SoundFactory.createSoundFromAsset(this.mEngine.getSoundManager(), getApplicationContext(), "whiffle.ogg");
+		} catch (final IOException e) {
+			Debug.e(e);
+		}
+		
 	}
 	
 	@Override
@@ -147,7 +159,7 @@ public class Level1Activity extends BaseGameActivity {
 		scene.getLastChild().attachChild(background);
 		final Sprite obstacleBox = new Sprite(0.0f, CAMERA_HEIGHT - mBoxTextureRegion.getHeight(), mBoxTextureRegion);
 		scene.getLastChild().attachChild(obstacleBox);
-		final Sprite bullet = new Sprite(20.0f, CAMERA_HEIGHT - 40.0f, mBulletTextureRegion){
+		bullet = new Sprite(20.0f, CAMERA_HEIGHT - 40.0f, mBulletTextureRegion){
 			@Override
 			public boolean onAreaTouched(final TouchEvent pAreaTouchEvent, final float pTouchAreaLocalX, final float pTouchAreaLocalY) {
 				switch(pAreaTouchEvent.getAction()) {
@@ -155,7 +167,7 @@ public class Level1Activity extends BaseGameActivity {
 					//Toast.makeText(Level1Activity.this, "Sprite touch DOWN", Toast.LENGTH_SHORT).show();
 					break;
 				case TouchEvent.ACTION_UP:
-					//Toast.makeText(Level1Activity.this, "Sprite touch UP", Toast.LENGTH_SHORT).show();
+					fireBullet(pAreaTouchEvent.getX(), pAreaTouchEvent.getY());
 					break;
 				case TouchEvent.ACTION_MOVE:
 					this.setPosition(pAreaTouchEvent.getX() - this.getWidth() / 2, pAreaTouchEvent.getY() - this.getHeight() / 2);
@@ -178,7 +190,7 @@ public class Level1Activity extends BaseGameActivity {
 		scene.setTouchAreaBindingEnabled(true);
 		scene.getLastChild().attachChild(bullet);
 		
-		final Sprite cross = new Sprite(bullet.getInitialX() + 40.0f, CAMERA_HEIGHT - 40.0f, mCrossTextureRegion){
+		cross = new Sprite(bullet.getInitialX() + 40.0f, CAMERA_HEIGHT - 40.0f, mCrossTextureRegion){
 			@Override
 			public boolean onAreaTouched(final TouchEvent pAreaTouchEvent, final float pTouchAreaLocalX, final float pTouchAreaLocalY) {
 				switch(pAreaTouchEvent.getAction()) {
@@ -209,7 +221,7 @@ public class Level1Activity extends BaseGameActivity {
 		scene.registerTouchArea(cross);
 		scene.getLastChild().attachChild(cross);
 		
-		final Sprite hatchet = new Sprite(cross.getInitialX() + 40.0f, CAMERA_HEIGHT - 40.0f, mHatchetTextureRegion){
+		hatchet = new Sprite(cross.getInitialX() + 40.0f, CAMERA_HEIGHT - 40.0f, mHatchetTextureRegion){
 			@Override
 			public boolean onAreaTouched(final TouchEvent pAreaTouchEvent, final float pTouchAreaLocalX, final float pTouchAreaLocalY) {
 				switch(pAreaTouchEvent.getAction()) {
@@ -217,7 +229,7 @@ public class Level1Activity extends BaseGameActivity {
 					//Toast.makeText(Level1Activity.this, "Sprite touch DOWN", Toast.LENGTH_SHORT).show();
 					break;
 				case TouchEvent.ACTION_UP:
-					//Toast.makeText(Level1Activity.this, "Sprite touch UP", Toast.LENGTH_SHORT).show();
+					throwHatchet(pAreaTouchEvent.getX(), pAreaTouchEvent.getY());
 					break;
 				case TouchEvent.ACTION_MOVE:
 					this.setPosition(pAreaTouchEvent.getX() - this.getWidth() / 2, pAreaTouchEvent.getY() - this.getHeight() / 2);
@@ -245,26 +257,18 @@ public class Level1Activity extends BaseGameActivity {
        	nVamp = 0;
 		mHandler.postDelayed(mStartVamp,3000);
 		
-		particleEmitter = new CircleParticleEmitter(CAMERA_WIDTH * 0.5f, CAMERA_HEIGHT * 0.5f + 20, 40);
-		particleSystem = new ParticleSystem(particleEmitter, 100, 100, 500, this.mParticleTextureRegion);
-
-		particleSystem.addParticleInitializer(new ColorInitializer(1, 0, 0));
-		particleSystem.addParticleInitializer(new AlphaInitializer(0));
-		particleSystem.setBlendFunction(GL10.GL_SRC_ALPHA, GL10.GL_ONE);
-		particleSystem.addParticleInitializer(new VelocityInitializer(-2, 2, -2, -2));
-		particleSystem.addParticleInitializer(new RotationInitializer(0.0f, 360.0f));
-
-		particleSystem.addParticleModifier(new org.anddev.andengine.entity.particle.modifier.ScaleModifier(1.0f, 2.0f, 0, 5));
-		particleSystem.addParticleModifier(new org.anddev.andengine.entity.particle.modifier.ColorModifier(1, 1, 0, 0.5f, 0, 0, 0, 3));
-		particleSystem.addParticleModifier(new org.anddev.andengine.entity.particle.modifier.ColorModifier(1, 1, 0.5f, 1, 0, 1, 2, 4));
-		particleSystem.addParticleModifier(new org.anddev.andengine.entity.particle.modifier.AlphaModifier(0, 1, 0, 1));
-		particleSystem.addParticleModifier(new org.anddev.andengine.entity.particle.modifier.AlphaModifier(1, 0, 3, 4));
-		particleSystem.addParticleModifier(new ExpireModifier(2, 4));
+		try {
+			final PXLoader pxLoader = new PXLoader(this, this.mEngine.getTextureManager(), TextureOptions.BILINEAR_PREMULTIPLYALPHA );
+			particleSystem = pxLoader.createFromAsset(this, "gfx/particles/explo.px");
+		} catch (final PXLoadException pxle) {
+			Debug.e(pxle);
+		}
 		
+		particleSystem.setBlendFunction(GL10.GL_SRC_ALPHA, GL10.GL_ONE);
 		particleSystem.setParticlesSpawnEnabled(false);
+		particleEmitter = (BaseParticleEmitter) particleSystem.getParticleEmitter();
 
 		scene.getLastChild().attachChild(particleSystem);
-		
 		return scene;
 	}
 
@@ -272,6 +276,62 @@ public class Level1Activity extends BaseGameActivity {
 	public void onLoadComplete() {
 	}
 	
+	//@Override
+	public void onPauseGame() {
+		//super.onPauseGame();
+		mGunshotSound.stop();
+		mExploSound.stop();
+	}
+
+	private void fireBullet( float pX, float pY){
+		// rotate bullet sprite 90 degrees cw, move rapidly to right, and play gunshot effect
+		bullet.registerEntityModifier(new SequenceEntityModifier (
+				new IEntityModifierListener() {
+					@Override
+					public void onModifierFinished(final IModifier<IEntity> pEntityModifier, final IEntity pEntity) {
+						Level1Activity.this.runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								bullet.setVisible(false);
+								bullet.setPosition(0,0);
+							}
+						});
+					}
+				},
+				new RotationModifier(0.5f, 0.0f, 90.0f),
+				new MoveXModifier(0.5f, pX, CAMERA_WIDTH),
+				new AlphaModifier(0.1f, 1.0f, 0.0f)));
+		
+		mHandler.postDelayed(mPlayGunshot, 500);
+	}
+	
+	private void throwHatchet( float pX, float pY){
+		// hatchet flies to right, rotating about eccentric point
+		hatchet.registerEntityModifier(new ParallelEntityModifier (
+				new IEntityModifierListener() {
+					@Override
+					public void onModifierFinished(final IModifier<IEntity> pEntityModifier, final IEntity pEntity) {
+						Level1Activity.this.runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								hatchet.setVisible(false);
+								hatchet.setPosition(0,0);
+							}
+						});
+					}
+				},
+				new RotationAtModifier(5.0f, 0.0f, 5.0f*360.0f, 20.0f, 20.0f),
+				new MoveXModifier(5.0f, pX, CAMERA_WIDTH)));
+		
+		playSound(mWhiffleSound);
+	}
+	
+    private Runnable mPlayGunshot = new Runnable() {
+        public void run() {
+        	playSound(mGunshotSound);
+        }
+    };
+    
     private Runnable mStartVamp = new Runnable() {
         public void run() {
         	int i = nVamp++;
@@ -289,6 +349,7 @@ public class Level1Activity extends BaseGameActivity {
            							( Math.abs(asprVamp[j].getY() + (asprVamp[j].getHeight()/2) - pAreaTouchEvent.getY()) < 10.0f)) {
            						particleEmitter.setCenter(pAreaTouchEvent.getX(), pAreaTouchEvent.getY());
            						particleSystem.setParticlesSpawnEnabled(true);
+           						playSound(mExploSound);
            		        		mHandler.postDelayed(mEndPESpawn,3000);
            		        		asprVamp[j].clearEntityModifiers();
                    				asprVamp[j].registerEntityModifier(
@@ -322,4 +383,10 @@ public class Level1Activity extends BaseGameActivity {
      		particleSystem.setParticlesSpawnEnabled(false);
          }
      };
+     
+     private void playSound (Sound mSound){
+    	 if (audioOptions.getBoolean("effectsOn", false)) {
+    		 mSound.play();
+    	 }
+     }
 }
